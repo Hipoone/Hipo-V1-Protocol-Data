@@ -171,6 +171,11 @@ interface IFinancingPool {
         uint256 id
         ) external view returns(DataTypes.ReserveData memory);
 
+    function getReserveId(
+        address asset,
+        uint256 duration
+        ) external view returns(uint256);
+
     function getCollateralConfiguration(
         address collateralAsset
         ) external view returns (DataTypes.CollateralConfigurationMap memory);
@@ -178,6 +183,8 @@ interface IFinancingPool {
     function getReserveConfiguration(
         uint256 id
         ) external view returns (DataTypes.ReserveConfigurationMap memory);
+
+    function getIssuerConfig(address issuer) external view returns(DataTypes.IssuerConfigurationMap memory);
 
     function getReservesList() external view returns (DataTypes.Reserve[] memory);
 

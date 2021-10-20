@@ -8,8 +8,13 @@ import {IPoolAddressesProvider} from '../../interfaces/IPoolAddressesProvider.so
 import {IERC20} from '../../dependencies/openzeppelin/contracts/IERC20Detailed.sol';
 import {DataTypes} from '../libraries/types/DataTypes.sol';
 import {IDebtToken} from '../../interfaces/IDebtToken.sol';
+import {UserConfiguration} from '../libraries/configuration/UserConfiguration.sol';
+import {SafeMath} from '../../dependencies/openzeppelin/contracts/SafeMath.sol';
 
 contract WalletDataProvider {
+
+    using UserConfiguration for DataTypes.IssuerConfigurationMap;
+    using SafeMath for uint256;
 
     struct Collateral {
         address collateralAssetAddress;
@@ -54,7 +59,7 @@ contract WalletDataProvider {
         return collaterals;
     }
 
-    function getIssuerDebtsData(uint256 reserveId, address user)
+    function getIssuerDebtsData(uint256 reserveId, address issuer)
         view
         external
         returns(IssuerDebt[] memory) {
@@ -67,7 +72,7 @@ contract WalletDataProvider {
 
             address debtTokenAddress = reserveData.debtTokenAddress;
 
-            uint256[] memory issuerDebtsIds = IDebtToken(debtTokenAddress).getIssuerDebtsList(user);
+            uint256[] memory issuerDebtsIds = IDebtToken(debtTokenAddress).getIssuerDebtsList(issuer);
 
             IssuerDebt[] memory issuerDebts = new IssuerDebt[](issuerDebtsIds.length);
 
@@ -77,7 +82,7 @@ contract WalletDataProvider {
 
             for (uint256 j = 0; j < issuerDebtsIds.length; j++) {
                 (uint256 startTimestamp, uint256 amount, address collateralAsset) =
-                    IDebtToken(debtTokenAddress).getDebtData(user, issuerDebtsIds[j]);
+                    IDebtToken(debtTokenAddress).getDebtData(issuer, issuerDebtsIds[j]);
                     issuerDebts[j].collateralAssetAddress = collateralAsset;
                     issuerDebts[j].debtAssetAddress = reserveData.asset;
                     issuerDebts[j].duration = reserveData.bondDuration;
@@ -97,4 +102,62 @@ contract WalletDataProvider {
             return issuerDebts;
         }
 
+    function getIssuerTotalDebts(address issuer, address collateralAssetAddress)
+        view
+        external
+        returns (
+            address debtAddressOfTokenA,
+            uint256 totalDebtsOfTokenA,
+            address debtAddressOfTokenB,
+            uint256 totalDebtsOfTokenB
+            ) {
+                IFinancingPool pool = IFinancingPool(ADDRESSES_PROVIDER.getFinancingPool());
+
+                DataTypes.CollateralData memory collateralData = pool.getCollateralData(collateralAssetAddress);
+                DataTypes.IssuerConfigurationMap memory issuerConfig;
+
+                issuerConfig = pool.getIssuerConfig(issuer);
+
+                if(issuerConfig.isEmpty()) {
+                    return (address(0), 0, address(0), 0);
+                }
+
+                if (!issuerConfig.isIssuing(collateralData.id)) {
+                    return (address(0), 0, address(0), 0);
+                }
+
+                for(uint256 i = 0; i < 12; i++) {
+
+                    if(!issuerConfig.getBondIssuingFlag(collateralData.id, i)) {
+                        continue;
+                    }
+
+                    if(i < 6) {
+
+                        DataTypes.ReserveData memory reserveData = pool.getReserveData(i);
+
+                        uint256 issuerDebtsAmountOfCollateral = IDebtToken(reserveData.debtTokenAddress)
+                                                                .getIssuerDebtsOfCollateral(issuer, collateralAssetAddress);
+
+                        totalDebtsOfTokenA = totalDebtsOfTokenA.add(issuerDebtsAmountOfCollateral);
+                    }
+
+                    if (i > 5) {
+
+                        DataTypes.ReserveData memory reserveData = pool.getReserveData(collateralData.id * 6 + i);
+
+                        uint256 debtReserveBTokenBalance = IERC20(reserveData.debtTokenAddress).balanceOf(issuer);
+
+                        totalDebtsOfTokenB = totalDebtsOfTokenB.add(debtReserveBTokenBalance);
+                    }
+                }
+
+                return (
+                    collateralData.underlyingAssetA,
+                    totalDebtsOfTokenA,
+                    collateralData.underlyingAssetB,
+                    totalDebtsOfTokenB
+                    );
+
+        }
 }
