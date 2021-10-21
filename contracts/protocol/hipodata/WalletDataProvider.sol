@@ -110,7 +110,7 @@ contract WalletDataProvider {
 
     function getIssuerTotalDebts(address issuer, address collateralAssetAddress)
         view
-        external
+        public
         returns (
             address debtAddressOfTokenA,
             uint256 totalDebtsOfTokenA,
@@ -167,12 +167,49 @@ contract WalletDataProvider {
 
         }
 
-    function getIssuerLtv(address issuer)
+    function getIssuerLtv(address issuer, address collateralAssetAddress)
         view
         external
         returns(uint256 issuerLtv) {
 
+            (
+                ,
+                uint256 totalDebtsOfTokenA,
+                ,
+                uint256 totalDebtsOfTokenB
 
+            ) = getIssuerTotalDebts(issuer, collateralAssetAddress);
+
+            if(totalDebtsOfTokenA == 0 && totalDebtsOfTokenB == 0) {
+                return 0;
+            }
+
+            (
+                uint256 amountOfUnderlyingAssetA,
+                ,
+                ,
+                uint256 amountOfUnderlyingAssetB,
+                ,
+
+            ) = getIssuerCollateralAssetUnderlyingAssets(issuer, collateralAssetAddress);
+
+
+            getIssuerCollateralAssetUnderlyingAssets(issuer, collateralAssetAddress);
+
+            if (amountOfUnderlyingAssetA == 0) {
+                return 0;
+            }
+
+            if (totalDebtsOfTokenA == 0) {
+                return totalDebtsOfTokenB.wadDiv(amountOfUnderlyingAssetB.mul(2));
+            }
+
+            if (totalDebtsOfTokenB == 0) {
+                return totalDebtsOfTokenA.wadDiv(amountOfUnderlyingAssetA.mul(2));
+            }
+
+            return (totalDebtsOfTokenA.wadDiv(amountOfUnderlyingAssetA.mul(2)))
+                .add(totalDebtsOfTokenB.wadDiv(amountOfUnderlyingAssetB.mul(2)));
         }
 
     struct getIssuerCollateralAssetUnderlyingAssetsLocalVars {
@@ -187,7 +224,7 @@ contract WalletDataProvider {
 
     function getIssuerCollateralAssetUnderlyingAssets(address issuer, address collateralAssetAddress)
         view
-        external
+        public
         returns(
             uint256,
             address,
@@ -243,6 +280,5 @@ contract WalletDataProvider {
                     vars.decimalsOfToken0
                     );
             }
-
         }
 }
