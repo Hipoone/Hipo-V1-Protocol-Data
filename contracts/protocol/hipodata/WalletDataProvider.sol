@@ -5,16 +5,20 @@ pragma experimental ABIEncoderV2;
 
 import {IFinancingPool} from '../../interfaces/IFinancingPool.sol';
 import {IPoolAddressesProvider} from '../../interfaces/IPoolAddressesProvider.sol';
-import {IERC20} from '../../dependencies/openzeppelin/contracts/IERC20Detailed.sol';
+import {IERC20} from '../../dependencies/openzeppelin/contracts/IERC20.sol';
+import {IERC20Detailed} from '../../dependencies/openzeppelin/contracts/IERC20.sol'
 import {DataTypes} from '../libraries/types/DataTypes.sol';
 import {IDebtToken} from '../../interfaces/IDebtToken.sol';
 import {UserConfiguration} from '../libraries/configuration/UserConfiguration.sol';
 import {SafeMath} from '../../dependencies/openzeppelin/contracts/SafeMath.sol';
+import {IUniswapV2Pair} from '../../interfaces/IUniswapV2Pair.sol';
+import {WadRayMath} '../libraries/math/WadRayMath.sol';
 
 contract WalletDataProvider {
 
     using UserConfiguration for DataTypes.IssuerConfigurationMap;
     using SafeMath for uint256;
+    using WadRayMath for uint256;
 
     struct Collateral {
         address collateralAssetAddress;
@@ -30,6 +34,8 @@ contract WalletDataProvider {
         uint256 amount;
         bool isRepaid;
     }
+
+    uint256 internal constant WAD = 1e18;
 
     IPoolAddressesProvider public immutable ADDRESSES_PROVIDER;
 
@@ -158,6 +164,85 @@ contract WalletDataProvider {
                     collateralData.underlyingAssetB,
                     totalDebtsOfTokenB
                     );
+
+        }
+
+    function getIssuerLtv(address issuer)
+        view
+        external
+        returns(uint256 issuerLtv) {
+
+
+        }
+
+    struct getIssuerCollateralAssetUnderlyingAssetsLocalVars {
+
+        uint256 amountToken0;
+        address token0;
+        uint8 decimalsOfToken0;
+        uint256 amountToken1;
+        address token1;
+        uint8 decimalsOfToken1;
+    }
+
+    function getIssuerCollateralAssetUnderlyingAssets(address issuer, address collateralAssetAddress)
+        view
+        external
+        returns(
+            uint256,
+            address,
+            uint8,
+            uint256,
+            address,
+            uint8
+            ) {
+
+            getIssuerCollateralAssetUnderlyingAssetsLocalVars memory vars;
+
+            IFinancingPool pool = IFinancingPool(ADDRESSES_PROVIDER.getFinancingPool());
+            DataTypes.CollateralData memory collateralData = pool.getCollateralData(collateralAssetAddress);
+
+            vars.token0 = IUniswapV2Pair(collateralAssetAddress).token0();
+            vars.token1 = IUniswapV2Pair(collateralAssetAddress).token1();
+
+            vars.decimalsOfToken0 = IERC20Detailed(vars.token0).decimals();
+            vars.decimalsOfToken1 = IERC20Detailed(vars.token1).decimals();
+
+            address colToken = collateralData.colTokenAddress;
+
+            uint256 collateralAmount = IERC20(colToken).balanceOf(issuer);
+
+            uint256 totalAmountOfUniPool = IERC20(collateralAssetAddress).totalSupply();
+
+            (uint112 amountToken0InPool, uint112 amountToken1InPool, ) =
+                IUniswapV2Pair(collateralAssetAddress).getReserves();
+
+            uint256 issuerPoolShare = collateralAmount.wadDiv(totalAmountOfUniPool);
+
+            vars.amountToken0 = issuerPoolShare.mul(uint256(amountToken0InPool)).div(WAD);
+            vars.amountToken1 = issuerPoolShare.mul(uint256(amountToken1InPool)).div(WAD);
+
+            if (collateralData.underlyingAssetA == vars.token0) {
+                return (
+                    vars.amountToken0,
+                    vars.token0,
+                    vars.decimalsOfToken0,
+                    vars.amountToken1,
+                    vars.token1,
+                    vars.decimalsOfToken1
+                    );
+            }
+
+            if (collateralData.underlyingAssetA == vars.token1) {
+                return (
+                    vars.amountToken1,
+                    vars.token1,
+                    vars.decimalsOfToken1,
+                    vars.amountToken0,
+                    vars.token0,
+                    vars.decimalsOfToken0
+                    );
+            }
 
         }
 }
