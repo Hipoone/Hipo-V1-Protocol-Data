@@ -289,38 +289,38 @@ contract WalletDataProvider {
             }
         }
 
-    function getIssuerAvailableDebts(address issuer, address collateralAssetAddress)
-        view
-        external
-        returns(uint256, uint256) {
+        function getIssuerAvailableDebts(address issuer, address collateralAssetAddress)
+            view
+            external
+            returns(uint256, uint256) {
 
-            IFinancingPool pool = IFinancingPool(ADDRESSES_PROVIDER.getFinancingPool());
+                IFinancingPool pool = IFinancingPool(ADDRESSES_PROVIDER.getFinancingPool());
 
-            DataTypes.CollateralConfigurationMap memory configuration =
-                pool.getCollateralConfiguration(collateralAssetAddress);
+                DataTypes.CollateralConfigurationMap memory configuration =
+                    pool.getCollateralConfiguration(collateralAssetAddress);
 
-            uint256 issuerLtv = getIssuerLtv(issuer, collateralAssetAddress);
+                uint256 issuerLtv = getIssuerLtv(issuer, collateralAssetAddress);
 
-            (uint256 maxLtv, , , ) = configuration.getParamsMemory();
+                (uint256 maxLtv, , , ) = configuration.getParamsMemory();
 
-            if (issuerLtv >= maxLtv) {
-                return (0, 0);
+                if (issuerLtv >= maxLtv) {
+                    return (0, 0);
+                }
+
+                (
+                    uint256 amountToken0,
+                    ,
+                    ,
+                    uint256 amountToken1,
+                    ,
+
+                ) = getIssuerCollateralAssetUnderlyingAssets(issuer, collateralAssetAddress);
+
+                uint256 totalAvailableDebtsOfToken0 = amountToken0.mul(maxLtv).div(100).mul(2);
+                uint256 totalAvailableDebtsOfToken1 = amountToken1.mul(maxLtv).div(100).mul(2);
+                uint256 issuerDebtOfToken0 = amountToken0.mul(issuerLtv).div(WAD);
+                uint256 issuerDebtOfToken1 = amountToken1.mul(issuerLtv).div(WAD);
+
+                return (totalAvailableDebtsOfToken0.sub(issuerDebtOfToken0), totalAvailableDebtsOfToken1.sub(issuerDebtOfToken1));
             }
-
-            (
-                uint256 amountToken0,
-                ,
-                ,
-                uint256 amountToken1,
-                ,
-
-            ) = getIssuerCollateralAssetUnderlyingAssets(issuer, collateralAssetAddress);
-
-            uint256 totalAvailableDebtsOfToken0 = amountToken0.mul(maxLtv).div(100).mul(2);
-            uint256 totalAvailableDebtsOfToken1 = amountToken1.mul(maxLtv).div(100).mul(2);
-            uint256 issuerDebtOfToken0 = amountToken0.mul(issuerLtv).div(WAD);
-            uint256 issuerDebtOfToken1 = amountToken1.mul(issuerLtv).div(WAD);
-
-            return (totalAvailableDebtsOfToken0.sub(issuerDebtOfToken0), totalAvailableDebtsOfToken1.sub(issuerDebtOfToken1));
-        }
 }

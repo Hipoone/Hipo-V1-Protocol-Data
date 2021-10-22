@@ -9,11 +9,20 @@ import {ReserveConfiguration} from '../libraries/configuration/ReserveConfigurat
 import {IPoolAddressesProvider} from '../../interfaces/IPoolAddressesProvider.sol';
 import {IERC20Detailed} from '../../dependencies/openzeppelin/contracts/IERC20Detailed.sol';
 import {IERC20} from '../../dependencies/openzeppelin/contracts/IERC20Detailed.sol';
+import {SafeMath} from '../../dependencies/openzeppelin/contracts/SafeMath.sol';
+import {WadRayMath} '../libraries/math/WadRayMath.sol';
+
+
+import {IHipoAMMV1Pair} from '../../interfaces/IHipoAMMV1Pair.sol';
+import {IHipoAMMV1Factory} from '../../interfaces/IHipoAMMV1Factory.sol';
 
 contract HipoProtocolDataProvider {
 
     using CollateralConfiguration for DataTypes.CollateralConfigurationMap;
     using ReserveConfiguration for DataTypes.ReserveConfigurationMap;
+
+    using SafeMath for uint256;
+    using WadRayMath for uint256;
 
     struct Reserve {
         address assetAddress;
@@ -28,6 +37,8 @@ contract HipoProtocolDataProvider {
     }
 
     IPoolAddressesProvider public immutable ADDRESSES_PROVIDER;
+
+    uint256 internal constant WAD = 1e18;
 
     constructor(IPoolAddressesProvider addressesProvider) public {
         ADDRESSES_PROVIDER = addressesProvider;
@@ -140,5 +151,28 @@ contract HipoProtocolDataProvider {
                 collateralTotalAmount = IERC20(colTokenAddress).totalSupply();
 
                 return collateralTotalAmount;
+            }
+
+    function getBondPrice (address asset, uint256 duration, address factory)
+        external
+        view
+        returns (
+            uint256 bondPrice
+            ) {
+
+                IFinancingPool pool = IFinancingPool(ADDRESSES_PROVIDER.getFinancingPool());
+                uint256 reserveId = pool.getReserveId(asset, duration);
+
+                DataTypes.ReserveData memory reserveData = pool.getReserveData(reserveId);
+
+                address interestTokenAddress = reserveData.interestTokenAddress;
+
+                address pair = IUniswapV2Factory(factory).getPair(interestTokenAddress, asset);
+
+                (uint256 amountToken0, uint256 amountToken1, ) = IUniswapV2Pair(pair).getReserves();
+
+                bondPrice = WAD.sub(amountToken1.wadDiv(amountToken0));
+
+                return bondPrice;
             }
 }
