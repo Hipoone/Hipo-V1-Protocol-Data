@@ -18,7 +18,6 @@ import {WadRayMath} '../libraries/math/WadRayMath.sol';
 
 import {DataTypes} from '../libraries/types/DataTypes.sol';
 
-
 contract WalletDataProvider {
 
     using UserConfiguration for DataTypes.IssuerConfigurationMap;
@@ -301,7 +300,12 @@ contract WalletDataProvider {
                 pool.getCollateralConfiguration(collateralAssetAddress);
 
             uint256 issuerLtv = getIssuerLtv(issuer, collateralAssetAddress);
+
             (uint256 maxLtv, , , ) = configuration.getParamsMemory();
+
+            if (issuerLtv >= maxLtv) {
+                return (0, 0);
+            }
 
             (
                 uint256 amountToken0,
