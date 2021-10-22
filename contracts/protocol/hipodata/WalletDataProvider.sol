@@ -7,16 +7,22 @@ import {IFinancingPool} from '../../interfaces/IFinancingPool.sol';
 import {IPoolAddressesProvider} from '../../interfaces/IPoolAddressesProvider.sol';
 import {IERC20} from '../../dependencies/openzeppelin/contracts/IERC20.sol';
 import {IERC20Detailed} from '../../dependencies/openzeppelin/contracts/IERC20.sol'
-import {DataTypes} from '../libraries/types/DataTypes.sol';
 import {IDebtToken} from '../../interfaces/IDebtToken.sol';
-import {UserConfiguration} from '../libraries/configuration/UserConfiguration.sol';
-import {SafeMath} from '../../dependencies/openzeppelin/contracts/SafeMath.sol';
 import {IUniswapV2Pair} from '../../interfaces/IUniswapV2Pair.sol';
+
+import {UserConfiguration} from '../libraries/configuration/UserConfiguration.sol';
+import {CollateralConfiguration} from '../libraries/configuration/CollateralConfiguration.sol';
+
+import {SafeMath} from '../../dependencies/openzeppelin/contracts/SafeMath.sol';
 import {WadRayMath} '../libraries/math/WadRayMath.sol';
+
+import {DataTypes} from '../libraries/types/DataTypes.sol';
+
 
 contract WalletDataProvider {
 
     using UserConfiguration for DataTypes.IssuerConfigurationMap;
+    using CollateralConfiguration for DataTypes.CollateralConfigurationMap;
     using SafeMath for uint256;
     using WadRayMath for uint256;
 
@@ -169,7 +175,7 @@ contract WalletDataProvider {
 
     function getIssuerLtv(address issuer, address collateralAssetAddress)
         view
-        external
+        public
         returns(uint256 issuerLtv) {
 
             (
@@ -260,6 +266,7 @@ contract WalletDataProvider {
             vars.amountToken1 = issuerPoolShare.mul(uint256(amountToken1InPool)).div(WAD);
 
             if (collateralData.underlyingAssetA == vars.token0) {
+
                 return (
                     vars.amountToken0,
                     vars.token0,
@@ -271,6 +278,7 @@ contract WalletDataProvider {
             }
 
             if (collateralData.underlyingAssetA == vars.token1) {
+
                 return (
                     vars.amountToken1,
                     vars.token1,
@@ -280,5 +288,35 @@ contract WalletDataProvider {
                     vars.decimalsOfToken0
                     );
             }
+        }
+
+    function getIssuerAvailableDebts(address issuer, address collateralAssetAddress)
+        view
+        external
+        returns(uint256, uint256) {
+
+            IFinancingPool pool = IFinancingPool(ADDRESSES_PROVIDER.getFinancingPool());
+
+            DataTypes.CollateralConfigurationMap memory configuration =
+                pool.getCollateralConfiguration(collateralAssetAddress);
+
+            uint256 issuerLtv = getIssuerLtv(issuer, collateralAssetAddress);
+            (uint256 maxLtv, , , ) = configuration.getParamsMemory();
+
+            (
+                uint256 amountToken0,
+                ,
+                ,
+                uint256 amountToken1,
+                ,
+
+            ) = getIssuerCollateralAssetUnderlyingAssets(issuer, collateralAssetAddress);
+
+            uint256 totalAvailableDebtsOfToken0 = amountToken0.mul(maxLtv).div(100).mul(2);
+            uint256 totalAvailableDebtsOfToken1 = amountToken1.mul(maxLtv).div(100).mul(2);
+            uint256 issuerDebtOfToken0 = amountToken0.mul(issuerLtv).div(WAD);
+            uint256 issuerDebtOfToken1 = amountToken1.mul(issuerLtv).div(WAD);
+
+            return (totalAvailableDebtsOfToken0.sub(issuerDebtOfToken0), totalAvailableDebtsOfToken1.sub(issuerDebtOfToken1));
         }
 }
