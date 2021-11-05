@@ -17,13 +17,13 @@ library DataTypes {
         ReserveConfigurationMap reserveConfiguration;
         address asset;
         uint256 bondDuration;
-        address hTokenAddress;
         address bondTokenAddress;
         address debtTokenAddress;
         address interestTokenAddress;
         address hipoLpTokenAddress;
         address hipoTreasuryAddress;
         address hipoFeeAddress;
+        address hipoProtocolFeeAddress;
         uint256 id;
     }
 

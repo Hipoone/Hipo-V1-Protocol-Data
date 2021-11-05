@@ -6,7 +6,7 @@ pragma experimental ABIEncoderV2;
 import {IFinancingPool} from '../../interfaces/IFinancingPool.sol';
 import {IPoolAddressesProvider} from '../../interfaces/IPoolAddressesProvider.sol';
 import {IERC20} from '../../dependencies/openzeppelin/contracts/IERC20.sol';
-import {IERC20Detailed} from '../../dependencies/openzeppelin/contracts/IERC20.sol'
+import {IERC20Detailed} from '../../dependencies/openzeppelin/contracts/IERC20Detailed.sol';
 import {IDebtToken} from '../../interfaces/IDebtToken.sol';
 import {IUniswapV2Pair} from '../../interfaces/IUniswapV2Pair.sol';
 
@@ -14,7 +14,7 @@ import {UserConfiguration} from '../libraries/configuration/UserConfiguration.so
 import {CollateralConfiguration} from '../libraries/configuration/CollateralConfiguration.sol';
 
 import {SafeMath} from '../../dependencies/openzeppelin/contracts/SafeMath.sol';
-import {WadRayMath} '../libraries/math/WadRayMath.sol';
+import {WadRayMath} from '../libraries/math/WadRayMath.sol';
 
 import {DataTypes} from '../libraries/types/DataTypes.sol';
 

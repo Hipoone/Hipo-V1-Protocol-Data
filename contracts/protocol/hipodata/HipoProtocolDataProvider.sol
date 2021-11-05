@@ -10,7 +10,7 @@ import {IPoolAddressesProvider} from '../../interfaces/IPoolAddressesProvider.so
 import {IERC20Detailed} from '../../dependencies/openzeppelin/contracts/IERC20Detailed.sol';
 import {IERC20} from '../../dependencies/openzeppelin/contracts/IERC20Detailed.sol';
 import {SafeMath} from '../../dependencies/openzeppelin/contracts/SafeMath.sol';
-import {WadRayMath} '../libraries/math/WadRayMath.sol';
+import {WadRayMath} from '../libraries/math/WadRayMath.sol';
 
 
 import {IHipoAMMV1Pair} from '../../interfaces/IHipoAMMV1Pair.sol';
@@ -167,9 +167,9 @@ contract HipoProtocolDataProvider {
 
                 address interestTokenAddress = reserveData.interestTokenAddress;
 
-                address pair = IUniswapV2Factory(factory).getPair(interestTokenAddress, asset);
+                address pair = IHipoAMMV1Factory(factory).getPair(interestTokenAddress, asset);
 
-                (uint256 amountToken0, uint256 amountToken1, ) = IUniswapV2Pair(pair).getReserves();
+                (uint256 amountToken0, uint256 amountToken1, ) = IHipoAMMV1Pair(pair).getReserves();
 
                 bondPrice = WAD.sub(amountToken1.wadDiv(amountToken0));
 
