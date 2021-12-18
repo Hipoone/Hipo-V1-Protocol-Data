@@ -164,7 +164,7 @@ library CollateralConfiguration {
 
                 return(
                     dataLocal & ~LTV_MASK,
-                    (dataLocal & ~LIQUIDATION_THRESHOLD_MASK) >> LIQUIDATION_BONUS_START_BIT_POSITION,
+                    (dataLocal & ~LIQUIDATION_THRESHOLD_MASK) >> LIQUIDATION_THRESHOLD_START_BIT_POSITON,
                     (dataLocal & ~DECIMALS_MASK) >> COLLATERAL_DECIMALS_START_BIT_POSITION,
                     (dataLocal & ~LIQUIDATION_BONUS_MASK) >> LIQUIDATION_BONUS_START_BIT_POSITION
                     );
