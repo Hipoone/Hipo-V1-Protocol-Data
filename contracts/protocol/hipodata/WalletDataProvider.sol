@@ -130,11 +130,22 @@ contract WalletDataProvider {
                 issuerConfig = pool.getIssuerConfig(issuer);
 
                 if(issuerConfig.isEmpty()) {
-                    return (address(0), 0, address(0), 0);
+
+                    return (
+                        collateralData.underlyingAssetA,
+                        0,
+                        collateralData.underlyingAssetB,
+                        0
+                        );
                 }
 
                 if (!issuerConfig.isIssuing(collateralData.id)) {
-                    return (address(0), 0, address(0), 0);
+                    return (
+                        collateralData.underlyingAssetA,
+                        0,
+                        collateralData.underlyingAssetB,
+                        0
+                        );
                 }
 
                 for(uint256 i = 0; i < 12; i++) {
